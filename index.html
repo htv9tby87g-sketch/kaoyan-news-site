@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>考研时政新闻辅导站</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <span class="brand">KAOYAN NEWS</span>
+      <button class="round-button" type="button" data-jump="addNews" aria-label="添加新闻">+</button>
+    </div>
+    <div class="news-band">
+      <p class="kicker">7:00 早报 · 21:00 晚报 · 考研时政</p>
+      <h1>考研时政新闻辅导站</h1>
+      <p>按新闻站式信息流整理热点：先看新闻，再拆考点，最后形成可背诵的分析结论。</p>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="edition-switch" aria-label="早晚报切换">
+      <button class="edition active" type="button" data-edition="morning">
+        <span>07:00</span>
+        <strong>早间精读</strong>
+        <small>10 国内 · 5 国外</small>
+      </button>
+      <button class="edition" type="button" data-edition="evening">
+        <span>21:00</span>
+        <strong>晚间轻读</strong>
+        <small>轻量复盘 · 不重复早报</small>
+      </button>
+    </section>
+
+    <section class="control-panel">
+      <label class="date-picker">
+        <span>日期</span>
+        <input id="dateInput" type="date" min="2026-07-10">
+      </label>
+      <label class="search">
+        <span>搜索</span>
+        <input id="searchInput" type="search" placeholder="输入关键词，例如 数字中国、就业、基层治理">
+      </label>
+      <div class="chips" aria-label="热点分类">
+        <button class="chip active" type="button" data-filter="全部">全部</button>
+        <button class="chip" type="button" data-filter="政治">政治</button>
+        <button class="chip" type="button" data-filter="经济">经济</button>
+        <button class="chip" type="button" data-filter="社会">社会</button>
+        <button class="chip" type="button" data-filter="科技">科技</button>
+        <button class="chip" type="button" data-filter="生态">生态</button>
+        <button class="chip" type="button" data-filter="国际">国际</button>
+      </div>
+      <button class="refresh-button" id="refreshNews" type="button">重新加载</button>
+    </section>
+
+    <section class="summary-grid">
+      <article class="metric">
+        <span>当前版本</span>
+        <strong id="editionName">早报</strong>
+        <small id="editionHint">重输入，适合上午集中学习</small>
+      </article>
+      <article class="metric">
+        <span>已收藏</span>
+        <strong id="savedCount">0</strong>
+        <small>重点热点会保存在本地浏览器</small>
+      </article>
+      <article class="metric">
+        <span>下次推送</span>
+        <strong id="nextPush">--:--</strong>
+        <small id="pushHint">网页打开时自动切换</small>
+      </article>
+    </section>
+
+    <section class="layout">
+      <div>
+        <div class="section-title">
+          <h2>热点新闻卡</h2>
+          <span id="resultCount">正在加载</span>
+        </div>
+        <p class="feed-status" id="feedStatus" aria-live="polite">正在尝试抓取最新新闻...</p>
+        <div id="newsList" class="news-list"></div>
+      </div>
+
+      <aside class="side">
+        <section class="coach-card">
+          <h2>今日学习法</h2>
+          <label><input type="checkbox" data-check="read"> 读完今日推送</label>
+          <label><input type="checkbox" data-check="keyword"> 标出关键词</label>
+          <label><input type="checkbox" data-check="answer"> 写出 1 句答题表达</label>
+          <div class="progress">
+            <span id="progressBar"></span>
+          </div>
+        </section>
+
+        <section class="coach-card">
+          <h2>推送规则</h2>
+          <ol>
+            <li>早报：优先抓前一天权威来源，10 篇国内、5 篇国外。</li>
+            <li>晚报：优先抓当天轻量内容，控制在 6 条以内。</li>
+            <li>每条约 200 字概述，包含来源、事件经过和考研连接。</li>
+            <li>国外新闻会自动翻译成中文，并保留原文链接。</li>
+            <li>已生成的早晚报会永久定稿；“重新加载”只读取档案，不会改写内容。</li>
+          </ol>
+        </section>
+
+        <section class="coach-card" id="addNews">
+          <h2>添加新闻到当前档案</h2>
+          <form id="newsForm">
+            <input name="title" required placeholder="新闻标题">
+            <select name="category">
+              <option>政治</option>
+              <option>经济</option>
+              <option>社会</option>
+              <option>科技</option>
+              <option>生态</option>
+              <option>国际</option>
+            </select>
+            <textarea name="summary" required maxlength="150" placeholder="概述：早报建议 80-120 字，晚报建议 45-80 字"></textarea>
+            <textarea name="point" required maxlength="120" placeholder="它可能怎么考？写一个考点，40-80 字"></textarea>
+            <input name="sourceName" required placeholder="来源名称，例如 央视新闻、新华社、人民日报">
+            <input name="sourceUrl" type="url" placeholder="来源链接，可选">
+            <button type="submit">加入卡片</button>
+          </form>
+        </section>
+      </aside>
+    </section>
+
+    <section class="notice">
+      <strong>说明</strong>
+      <span>内容标准：权威来源优先，早报看前一天大事，晚报看当天轻复盘；概述约 200 字，写清来源、事件经过和考研角度，国外新闻自动翻译并保留原文链接。</span>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

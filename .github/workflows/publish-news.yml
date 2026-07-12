@@ -1,0 +1,87 @@
+name: Generate and publish news archive
+
+on:
+  schedule:
+    # Beijing 06:45 and 07:15: prepare and retry the morning report.
+    - cron: "45 22 * * *"
+    - cron: "15 23 * * *"
+    # Beijing 20:45 and 21:15: prepare and retry the evening report.
+    - cron: "45 12 * * *"
+    - cron: "15 13 * * *"
+    # Beijing 00:30: recover any missing reports from the past 14 days.
+    - cron: "30 16 * * *"
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: Report to generate manually
+        required: true
+        default: morning
+        type: choice
+        options:
+          - morning
+          - evening
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: news-pages
+  cancel-in-progress: false
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      NEWS_DATA_DIR: published-data/news
+    steps:
+      - name: Check out archive
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Generate finalized report
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node generate-report.mjs --edition "${{ inputs.edition }}" --prepare
+          else
+            case "${{ github.event.schedule }}" in
+              "45 22 * * *"|"15 23 * * *") node generate-report.mjs --edition morning --prepare ;;
+              "45 12 * * *"|"15 13 * * *") node generate-report.mjs --edition evening --prepare ;;
+              "30 16 * * *") node generate-report.mjs --backfill --days 14 ;;
+              *) echo "Unknown schedule"; exit 1 ;;
+            esac
+          fi
+
+      - name: Commit new finalized archives
+        shell: bash
+        run: |
+          git config user.name "kaoyan-news-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add published-data/news
+          if git diff --cached --quiet; then
+            echo "No new archive files."
+          else
+            git commit -m "chore: publish finalized news archive"
+            git push
+          fi
+
+      - name: Build static site
+        run: node scripts/build-static-site.mjs
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
