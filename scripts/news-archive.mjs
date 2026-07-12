@@ -39,8 +39,16 @@ export async function writeNewsManifest(dataDir) {
     }
   }
   reports.sort(reportOrder);
+  let previous = null;
+  try {
+    previous = JSON.parse(await readFile(path.join(dataDir, "index.json"), "utf8"));
+  } catch {
+    // The first manifest uses the current generation time.
+  }
+  const reportsUnchanged = previous?.siteLaunchDate === siteLaunchDate
+    && JSON.stringify(previous?.reports || []) === JSON.stringify(reports);
   const manifest = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: reportsUnchanged && previous?.updatedAt ? previous.updatedAt : new Date().toISOString(),
     siteLaunchDate,
     latest: reports[0] || null,
     reports,
