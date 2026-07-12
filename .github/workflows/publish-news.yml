@@ -1,6 +1,9 @@
 name: Generate and publish news archive
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # Beijing 06:45 and 07:15: prepare and retry the morning report.
     - cron: "45 22 * * *"
@@ -49,6 +52,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             node generate-report.mjs --edition "${{ inputs.edition }}" --prepare
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            node generate-report.mjs --backfill --days 14
           else
             case "${{ github.event.schedule }}" in
               "45 22 * * *"|"15 23 * * *") node generate-report.mjs --edition morning --prepare ;;
