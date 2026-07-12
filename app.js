@@ -240,6 +240,7 @@ function escapeHtml(value = "") {
 
 function safeUrl(value = "", localAllowed = false) {
   const url = String(value || "").trim();
+  if (!url) return "";
   if (localAllowed && /^(?:data\/images|assets)\/[a-z0-9._/-]+$/i.test(url)) return url;
   try {
     const parsed = new URL(url, window.location.href);
