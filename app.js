@@ -217,7 +217,6 @@ const newsList = document.querySelector("#newsList");
 const resultCount = document.querySelector("#resultCount");
 const searchInput = document.querySelector("#searchInput");
 const savedCount = document.querySelector("#savedCount");
-const progressBar = document.querySelector("#progressBar");
 const editionName = document.querySelector("#editionName");
 const editionHint = document.querySelector("#editionHint");
 const nextPush = document.querySelector("#nextPush");
@@ -699,55 +698,6 @@ articleDialog.addEventListener("click", (event) => {
   if (event.target === articleDialog) articleDialog.close();
 });
 
-document.querySelectorAll("[data-check]").forEach((checkbox) => {
-  checkbox.checked = Boolean(state[`check-${checkbox.dataset.check}`]);
-  checkbox.addEventListener("change", () => {
-    state[`check-${checkbox.dataset.check}`] = checkbox.checked;
-    saveState();
-    updateStudyProgress();
-  });
-});
-
-function updateStudyProgress() {
-  const checks = [...document.querySelectorAll("[data-check]")];
-  const done = checks.filter((item) => item.checked).length;
-  progressBar.style.width = `${Math.round((done / checks.length) * 100)}%`;
-}
-
-document.querySelector("#newsForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const availability = getLocalReportAvailability(activeDate, activeEdition);
-  if (availability.status !== "available") {
-    reportStatus = availability.status;
-    feedMessage = availability.message;
-    render();
-    return;
-  }
-  const form = new FormData(event.currentTarget);
-  customNews.unshift({
-    id: `custom-${Date.now()}`,
-    edition: activeEdition,
-    date: activeDate,
-    title: form.get("title"),
-    category: form.get("category"),
-    summary: form.get("summary"),
-    point: form.get("point"),
-    sourceName: form.get("sourceName"),
-    sourceUrl: form.get("sourceUrl"),
-    keywords: ["自定义", form.get("category"), "考研时政"],
-  });
-  localStorage.setItem(userNewsKey, JSON.stringify(customNews));
-  event.currentTarget.reset();
-  activeFilter = "全部";
-  document.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("active", item.dataset.filter === "全部"));
-  render();
-});
-
-document.querySelector("[data-jump]").addEventListener("click", () => {
-  document.querySelector("#addNews").scrollIntoView({ behavior: "smooth", block: "center" });
-});
-
-updateStudyProgress();
 setEdition(activeEdition);
 backfillRecentNews();
 setInterval(updatePushClock, 60000);

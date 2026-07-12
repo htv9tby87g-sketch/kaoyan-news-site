@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>考研时政新闻辅导站</title>
-  <link rel="stylesheet" href="styles.css?v=20260713-images-2">
+  <link rel="stylesheet" href="styles.css?v=20260713-images-3">
 </head>
 <body>
   <header class="site-header">
     <div class="masthead">
       <span class="brand">KAOYAN NEWS</span>
-      <button class="round-button" type="button" data-jump="addNews" aria-label="添加新闻">+</button>
     </div>
     <div class="news-band">
       <p class="kicker">7:00 早报 · 21:00 晚报 · 考研时政</p>
@@ -82,48 +81,6 @@
         <div id="newsList" class="news-list"></div>
       </div>
 
-      <aside class="side">
-        <section class="coach-card">
-          <h2>今日学习法</h2>
-          <label><input type="checkbox" data-check="read"> 读完今日推送</label>
-          <label><input type="checkbox" data-check="keyword"> 标出关键词</label>
-          <label><input type="checkbox" data-check="answer"> 写出 1 句答题表达</label>
-          <div class="progress">
-            <span id="progressBar"></span>
-          </div>
-        </section>
-
-        <section class="coach-card">
-          <h2>推送规则</h2>
-          <ol>
-            <li>早报：优先抓前一天权威来源，10 篇国内、5 篇国外。</li>
-            <li>晚报：优先抓当天轻量内容，控制在 6 条以内。</li>
-            <li>每条约 200 字概述，包含来源、事件经过和考研连接。</li>
-            <li>国外新闻会自动翻译成中文，并保留原文链接。</li>
-            <li>已生成的早晚报会永久定稿；“重新加载”只读取档案，不会改写内容。</li>
-          </ol>
-        </section>
-
-        <section class="coach-card" id="addNews">
-          <h2>添加新闻到当前档案</h2>
-          <form id="newsForm">
-            <input name="title" required placeholder="新闻标题">
-            <select name="category">
-              <option>政治</option>
-              <option>经济</option>
-              <option>社会</option>
-              <option>科技</option>
-              <option>生态</option>
-              <option>国际</option>
-            </select>
-            <textarea name="summary" required maxlength="150" placeholder="概述：早报建议 80-120 字，晚报建议 45-80 字"></textarea>
-            <textarea name="point" required maxlength="120" placeholder="它可能怎么考？写一个考点，40-80 字"></textarea>
-            <input name="sourceName" required placeholder="来源名称，例如 央视新闻、新华社、人民日报">
-            <input name="sourceUrl" type="url" placeholder="来源链接，可选">
-            <button type="submit">加入卡片</button>
-          </form>
-        </section>
-      </aside>
     </section>
 
     <section class="notice">
@@ -142,6 +99,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=20260713-images-2"></script>
+  <script src="app.js?v=20260713-images-3"></script>
 </body>
 </html>
