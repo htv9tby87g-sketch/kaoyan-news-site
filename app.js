@@ -535,12 +535,6 @@ async function loadRemoteNews(refresh = false) {
     return;
   }
 
-  if (usesStaticArchive() && storedReport) {
-    loadingNews = false;
-    render();
-    return;
-  }
-
   loadingNews = true;
   if (!keepFinalizedReport) reportStatus = "loading";
   feedMessage = refresh ? "正在重新加载已定稿档案..." : "正在加载新闻档案...";
