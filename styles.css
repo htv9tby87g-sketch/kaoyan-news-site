@@ -132,6 +132,7 @@ h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 56px); line-height: 1; letter-
 .detail-image { max-height: 500px; aspect-ratio: 16 / 9; }
 .lead-image img, .story-image img, .detail-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .lead-image figcaption, .story-image figcaption, .detail-image figcaption { position: absolute; right: 0; bottom: 0; padding: 5px 7px; color: #fff; background: rgba(0, 0, 0, 0.72); font-size: 11px; }
+.topic-art figcaption { background: rgba(187, 25, 25, 0.92); }
 .image-fallback { display: none; width: 100%; height: 100%; place-content: center; gap: 7px; text-align: center; background: #e4e4e4; }
 .image-fallback span { color: var(--news-red); font-size: 13px; font-weight: 800; }
 .image-fallback strong { font-size: 20px; }

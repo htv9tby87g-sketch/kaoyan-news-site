@@ -257,18 +257,61 @@ function teaserFor(item, limit = 116) {
   return text.length > limit ? `${text.slice(0, limit).replace(/[，,。；;：:]?$/, "")}…` : text;
 }
 
+const topicImageByCategory = {
+  政治: "assets/topic-politics.jpg",
+  法治: "assets/topic-politics.jpg",
+  军事: "assets/topic-politics.jpg",
+  经济: "assets/topic-economy.jpg",
+  社会: "assets/topic-society.jpg",
+  民生: "assets/topic-society.jpg",
+  教育: "assets/topic-society.jpg",
+  文化: "assets/topic-society.jpg",
+  科技: "assets/topic-technology.jpg",
+  生态: "assets/topic-ecology.jpg",
+  国际: "assets/topic-international.jpg",
+  外交: "assets/topic-international.jpg",
+};
+
+function topicImageFor(category = "") {
+  return topicImageByCategory[category] || "assets/topic-society.jpg";
+}
+
 function imageMarkup(item, className = "story-image") {
-  const imageUrl = safeUrl(item.imageUrl, true);
-  const alt = escapeHtml(item.imageAlt || item.title || "新闻图片");
+  const officialImageUrl = safeUrl(item.imageUrl, true);
+  const topicImageUrl = safeUrl(topicImageFor(item.category), true);
+  const imageUrl = officialImageUrl || topicImageUrl;
+  const isTopicImage = !officialImageUrl;
+  const alt = escapeHtml(isTopicImage ? `${item.category || "时政"}专题配图` : (item.imageAlt || item.title || "新闻图片"));
+  const topicAlt = escapeHtml(`${item.category || "时政"}专题配图`);
   const source = escapeHtml(item.imageSource || item.sourceName || "新闻来源");
   return `
-    <figure class="${className} ${imageUrl ? "" : "failed"}">
-      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${alt}" loading="lazy" decoding="async">` : ""}
+    <figure class="${className} ${imageUrl ? "" : "failed"} ${isTopicImage ? "topic-art" : ""}">
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${alt}" data-topic-src="${escapeHtml(topicImageUrl)}" data-topic-alt="${topicAlt}" ${isTopicImage ? 'data-topic-tried="1"' : ""} loading="lazy" decoding="async">` : ""}
       <div class="image-fallback"><span>${escapeHtml(item.category || "时政")}</span><strong>KAOYAN NEWS</strong></div>
-      ${imageUrl ? `<figcaption>图片来源：${source}</figcaption>` : ""}
+      ${imageUrl ? `<figcaption>${isTopicImage ? "专题配图 · 非新闻现场" : `图片来源：${source}`}</figcaption>` : ""}
     </figure>
   `;
 }
+
+document.addEventListener("error", (event) => {
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement)) return;
+  const figure = image.closest("figure");
+  if (!figure) return;
+
+  const topicImageUrl = safeUrl(image.dataset.topicSrc, true);
+  if (!image.dataset.topicTried && topicImageUrl) {
+    image.dataset.topicTried = "1";
+    image.src = topicImageUrl;
+    image.alt = image.dataset.topicAlt || "专题配图";
+    figure.classList.add("topic-art");
+    const caption = figure.querySelector("figcaption");
+    if (caption) caption.textContent = "专题配图 · 非新闻现场";
+    return;
+  }
+
+  figure.classList.add("failed");
+}, true);
 
 function sourceMarkup(item, includeLink = false) {
   const sourceUrl = safeUrl(item.sourceUrl);
