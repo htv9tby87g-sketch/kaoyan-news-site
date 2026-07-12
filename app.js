@@ -196,7 +196,7 @@ const eveningNews = [
 
 const stateKey = "kaoyan-news-site-state";
 const userNewsKey = "kaoyan-news-user-news";
-const finalizedArchiveKey = "kaoyan-news-finalized-archive-v1";
+const finalizedArchiveKey = "kaoyan-news-finalized-archive-v2";
 const siteLaunchDate = "2026-07-10";
 const shanghaiOffsetMs = 8 * 60 * 60 * 1000;
 const state = JSON.parse(localStorage.getItem(stateKey) || "{}");
