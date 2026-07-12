@@ -451,7 +451,8 @@ function render() {
     return matchFilter && (!query || haystack.includes(query));
   });
 
-  const lead = filtered[0];
+  const lead = filtered.find((item) => safeUrl(item.imageUrl, true)) || filtered[0];
+  const remainingStories = filtered.filter((item) => item !== lead);
   const leadMarkup = lead ? `
     <article class="lead-story">
       <div class="lead-copy">
@@ -464,7 +465,7 @@ function render() {
       ${imageMarkup(lead, "lead-image")}
     </article>
   ` : "";
-  const gridMarkup = filtered.slice(1).map((item) => `
+  const gridMarkup = remainingStories.map((item) => `
     <article class="news-card">
       ${imageMarkup(item)}
       <div class="card-copy">
