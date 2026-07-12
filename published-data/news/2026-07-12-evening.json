@@ -37,7 +37,11 @@
       "sourceUrl": "http://www.xinhuanet.com/20260712/de1b3b8a4f264bf9a4ef79ac2e492352/c.html",
       "publishedAt": "20260711T224500Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.xinhuanet.com/20260709/f0c99841a01e4bbd910b3bcd6194e69c/b53cef6b9c8f47b396b1ac2273b09ff4.jpg",
+      "imageUrl": "data/images/2026-07-12-evening-01-dd839d23b4.jpg",
+      "imageAlt": "上海浦东和虹桥机场12日计划取消进出港航班653架次 - 新华网",
+      "imageSource": "新华网"
     },
     {
       "id": "evening-1-aHR0cDovL3",
@@ -91,7 +95,11 @@
       "sourceUrl": "http://www.xinhuanet.com/20260712/403ebe4f1d4648759757a7350e35c5e4/c.html",
       "publishedAt": "20260711T224500Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.xinhuanet.com/20260709/f0c99841a01e4bbd910b3bcd6194e69c/212a8c4e4b1f4108a286f7cd4e6eb090.jpg",
+      "imageUrl": "data/images/2026-07-12-evening-03-d3da8c8d1c.jpg",
+      "imageAlt": "各部门多措并举防汛防台风 保障人民生命财产安全 - 新华网",
+      "imageSource": "新华网"
     },
     {
       "id": "evening-3-aHR0cDovL3",
@@ -118,7 +126,11 @@
       "sourceUrl": "http://www.hq.xinhuanet.com/20260712/b47f4317fe08405eb35a3e1d77059df9/c.html",
       "publishedAt": "20260712T010000Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.hq.xinhuanet.com/20260711/31457e46449b4a188dd68ae05ff6cf73/2026071131457e46449b4a188dd68ae05ff6cf73_202607116e1c62c577c04d8ea3c3dc24876baea0.jpg",
+      "imageUrl": "data/images/2026-07-12-evening-04-3b6a708732.jpg",
+      "imageAlt": "村里上岗了 空中巡查员 - 新华网",
+      "imageSource": "新华网"
     },
     {
       "id": "evening-4-aHR0cDovL3",

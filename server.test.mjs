@@ -76,15 +76,18 @@ const sourceHtml = `
   <meta name="source" content="新华社">
   <meta name="publishdate" content="2026-07-09">
   <meta name="description" content="&emsp;四部门联合印发实施意见，提出用五年时间分三步推进人工智能在人社领域的应用。">
+  <meta property="og:image" content="/images/policy-meeting.jpg">
+  <meta property="og:image:alt" content="政策发布会现场">
   <div id="detailContent">
     <p>记者获悉，人力资源社会保障部等四部门近日联合印发实施意见，要求推动人工智能产业和人社工作协同优化，开拓就业、社会保障、人才服务和劳动关系等领域的应用场景。</p>
     <p>文件规划六个一级场景、十九个二级场景和六十七个细分场景，并提出建设应用平台、高质量数据集、语料库和行业算法模型。</p>
     <p>有关部门将按照夯实基础、规模推广和深度融合三个阶段推进，同时建立就业影响评估与劳动者权益保障机制。</p>
     <p>有关部门将按照夯实基础、规模推广和深度融合三个阶段推进，同时建立就业影响评估与劳动者权益保障机制。</p>
     <p>统计数据显示，相关项目总额达到45.61亿元，同比增长4.12%，主要指标保持稳定增长。</p>
+    <img src="/images/article-scene.jpg" alt="政策实施现场">
   </div>
 `;
-const extracted = extractArticlePage(sourceHtml, "四部门部署人工智能加人社应用");
+const extracted = extractArticlePage(sourceHtml, "四部门部署人工智能加人社应用", "https://example.com/news/123");
 assert.equal(extracted.sourceName, "新华社");
 assert.ok(extracted.text.length >= 200);
 assert.ok(extracted.text.includes("六个一级场景"));
@@ -92,6 +95,8 @@ assert.ok(!extracted.text.includes("&emsp;"));
 assert.equal(extracted.text.match(/三个阶段推进/g)?.length, 1);
 assert.ok(extracted.text.includes("45.61亿元"));
 assert.ok(extracted.text.includes("4.12%"));
+assert.equal(extracted.imageUrl, "https://example.com/images/policy-meeting.jpg");
+assert.equal(extracted.imageAlt, "政策发布会现场");
 
 const groundedOverview = makeEventOverview({
   title: "四部门部署人工智能加人社应用",

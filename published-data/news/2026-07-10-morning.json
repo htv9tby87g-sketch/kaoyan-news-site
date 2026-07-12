@@ -62,7 +62,11 @@
       "sourceUrl": "http://www.hq.xinhuanet.com/20260709/d68c97e90e8f433a8efface3b2e129af/c.html",
       "publishedAt": "20260709T014500Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.hq.xinhuanet.com/20260708/a402515a47594d73a78c8c68480a2709/20260708a402515a47594d73a78c8c68480a2709_202607084ec97aaa7c424ae0a9fec6114ce6bddc.png",
+      "imageUrl": "data/images/2026-07-10-morning-02-fdcba2a388.png",
+      "imageAlt": "海南省政府与中国汽车技术研究中心有限公司签约 - 新华网",
+      "imageSource": "新华网"
     },
     {
       "id": "morning-2-aHR0cDovL3",
@@ -278,7 +282,11 @@
       "sourceUrl": "http://www.hq.xinhuanet.com/20260709/4ab22f1889f3405d8d3b17552943794f/c.html",
       "publishedAt": "20260709T014500Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.hq.xinhuanet.com/20260709/4ab22f1889f3405d8d3b17552943794f/202607094ab22f1889f3405d8d3b17552943794f_39540b32f5694a158e8c950c7ba49872.jpg",
+      "imageUrl": "data/images/2026-07-10-morning-10-01e196b536.jpg",
+      "imageAlt": "新能源装机占比过半 海南迈入绿色电力发展新阶段 - 新华网",
+      "imageSource": "新华网"
     }
   ]
 }

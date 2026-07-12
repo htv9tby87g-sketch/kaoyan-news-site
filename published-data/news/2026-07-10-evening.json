@@ -37,7 +37,11 @@
       "sourceUrl": "http://french.xinhuanet.com/20260709/207213c2dac34189a1d2500fa3af8baa/c.html",
       "publishedAt": "20260709T181500Z",
       "translated": true,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://french.xinhuanet.com/20260709/207213c2dac34189a1d2500fa3af8baa/u3BPHyLLrSVmEtjs.jpeg",
+      "imageUrl": "data/images/2026-07-10-evening-01-aae42d9955.jpg",
+      "imageAlt": "Le Premier ministre chinois rencontre la présidente namibienne à北京-新华社",
+      "imageSource": "新华网"
     },
     {
       "id": "evening-1-aHR0cDovL3",
@@ -64,7 +68,11 @@
       "sourceUrl": "http://www.zj.xinhuanet.com/20260709/16b7dc90a636415aad9ac41c41868ae7/c.html",
       "publishedAt": "20260709T160000Z",
       "translated": false,
-      "sourceVerified": true
+      "sourceVerified": true,
+      "imageRemoteUrl": "http://www.zj.xinhuanet.com/20260709/16b7dc90a636415aad9ac41c41868ae7/2026070916b7dc90a636415aad9ac41c41868ae7_20260709afb7347edc4d4654bea5f70e9818bc7b.png",
+      "imageUrl": "data/images/2026-07-10-evening-02-06b9f98ae0.png",
+      "imageAlt": "超强台风 巴威 持续逼近 浙江苍南全力筑牢安全防线 - 新华网",
+      "imageSource": "新华网"
     }
   ]
 }

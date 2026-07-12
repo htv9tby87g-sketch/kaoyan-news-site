@@ -505,9 +505,41 @@ function dedupeSourceSentences(value) {
   return result.join(" ");
 }
 
-function extractArticlePage(html, title = "") {
+function normalizeImageUrl(value, baseUrl = "") {
+  const decoded = decodeHtmlEntities(String(value || "")).trim();
+  if (!decoded) return "";
+  try {
+    const url = new URL(decoded, baseUrl || undefined);
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+function articleImageFromTags(html, sourceUrl = "") {
+  for (const match of String(html).matchAll(/<img\b[^>]*>/gi)) {
+    const attributes = tagAttributes(match[0]);
+    const candidate = attributes["data-src"] || attributes["data-original"] || attributes.src || "";
+    const imageUrl = normalizeImageUrl(candidate, sourceUrl);
+    if (!imageUrl) continue;
+    if (/(?:qrcode|qr-code|ewm|zxcode|sharelogo|\/logo|\/icon|avatar)/i.test(imageUrl)) continue;
+    if (!/\.(?:jpe?g|png|webp)(?:$|[?#])/i.test(imageUrl)) continue;
+    return { imageUrl, imageAlt: cleanText(attributes.alt || "") };
+  }
+  return { imageUrl: "", imageAlt: "" };
+}
+
+function extractArticlePage(html, title = "", sourceUrl = "") {
   const sourceName = metaContents(html, ["source", "article:author", "og:site_name"])[0] || "";
   const publishedAt = metaContents(html, ["publishdate", "article:published_time", "datePublished"])[0] || "";
+  const metadataImageUrl = normalizeImageUrl(
+    metaContents(html, ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"])[0],
+    sourceUrl,
+  );
+  const inlineImage = articleImageFromTags(html, sourceUrl);
+  const imageUrl = metadataImageUrl || inlineImage.imageUrl;
+  const imageAlt = metaContents(html, ["og:image:alt", "twitter:image:alt"])[0] || inlineImage.imageAlt || title;
   const metaDescriptions = metaContents(html, ["description", "og:description", "twitter:description"]);
   const structured = jsonLdArticleText(html);
   const withoutNoise = String(html)
@@ -531,7 +563,7 @@ function extractArticlePage(html, title = "") {
     if (remaining <= 0) break;
     text += `${text ? " " : ""}${segment.slice(0, remaining)}`;
   }
-  return { text: dedupeSourceSentences(text), sourceName, publishedAt };
+  return { text: dedupeSourceSentences(text), sourceName, publishedAt, imageUrl, imageAlt };
 }
 
 function requestSourcePage(url, redirects = 0) {
@@ -597,9 +629,9 @@ async function fetchSourcePage(url) {
 
 async function enrichSourceArticle(article) {
   const indexedDetail = normalizeSourceSegment(article.seendesc || "", article.title || "");
-  let page = { text: "", sourceName: "", publishedAt: "" };
+  let page = { text: "", sourceName: "", publishedAt: "", imageUrl: "", imageAlt: "" };
   try {
-    page = extractArticlePage(await fetchSourcePage(article.url), article.title || "");
+    page = extractArticlePage(await fetchSourcePage(article.url), article.title || "", article.url);
   } catch {
     // A sufficiently detailed index excerpt can still be used without inventing facts.
   }
@@ -610,6 +642,8 @@ async function enrichSourceArticle(article) {
     source: page.sourceName || article.source,
     seendate: article.seendate || page.publishedAt,
     seendesc: detail,
+    imageUrl: page.imageUrl || article.imageUrl || article.socialimage || "",
+    imageAlt: page.imageAlt || article.imageAlt || article.title || "",
     sourceVerified: pageDetail.length >= 80,
   };
 }
@@ -669,6 +703,8 @@ async function normalizeArticles(items, edition) {
       publishedAt: item.seendate || item.publishedAt || "",
       sourceDescription: cleanText(item.seendesc || ""),
       translated: false,
+      imageUrl: item.imageUrl || item.socialimage || "",
+      imageAlt: cleanText(item.imageAlt || item.title),
     }));
 }
 
@@ -704,6 +740,9 @@ async function enrichNormalizedArticle(article, edition) {
     publishedAt: localized.seendate || article.publishedAt,
     translated: Boolean(article.translated || localized.translated),
     sourceVerified: Boolean(localized.sourceVerified),
+    imageUrl: localized.imageUrl || article.imageUrl || "",
+    imageAlt: localized.imageAlt || localized.title || article.title,
+    imageSource: cleanText(localized.source || article.sourceName),
   };
 }
 

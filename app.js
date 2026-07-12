@@ -225,6 +225,92 @@ const pushHint = document.querySelector("#pushHint");
 const dateInput = document.querySelector("#dateInput");
 const feedStatus = document.querySelector("#feedStatus");
 const refreshNews = document.querySelector("#refreshNews");
+const articleDialog = document.querySelector("#articleDialog");
+const articleDialogContent = document.querySelector("#articleDialogContent");
+const closeArticle = document.querySelector("#closeArticle");
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function safeUrl(value = "", localAllowed = false) {
+  const url = String(value || "").trim();
+  if (localAllowed && /^(?:data\/images|assets)\/[a-z0-9._/-]+$/i.test(url)) return url;
+  try {
+    const parsed = new URL(url, window.location.href);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function teaserFor(item, limit = 116) {
+  const text = String(item.overview || item.summary || item.point || "")
+    .replace(/^据\S+\s+\d{4}-\d{2}-\d{2}报道[，,]?/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > limit ? `${text.slice(0, limit).replace(/[，,。；;：:]?$/, "")}…` : text;
+}
+
+function imageMarkup(item, className = "story-image") {
+  const imageUrl = safeUrl(item.imageUrl, true);
+  const alt = escapeHtml(item.imageAlt || item.title || "新闻图片");
+  const source = escapeHtml(item.imageSource || item.sourceName || "新闻来源");
+  return `
+    <figure class="${className} ${imageUrl ? "" : "failed"}">
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${alt}" loading="lazy" decoding="async">` : ""}
+      <div class="image-fallback"><span>${escapeHtml(item.category || "时政")}</span><strong>KAOYAN NEWS</strong></div>
+      ${imageUrl ? `<figcaption>图片来源：${source}</figcaption>` : ""}
+    </figure>
+  `;
+}
+
+function sourceMarkup(item, includeLink = false) {
+  const sourceUrl = safeUrl(item.sourceUrl);
+  return `
+    <div class="source-line">
+      <span>${escapeHtml(item.sourceName || "未标注来源")}</span>
+      ${item.sourceVerified ? "<span>原文正文提炼</span>" : ""}
+      ${item.translated ? "<span>已译为中文</span>" : ""}
+      ${includeLink && sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">查看新闻原文</a>` : ""}
+    </div>
+  `;
+}
+
+function saveButtonMarkup(item) {
+  const saved = Boolean(state[`saved-${item.id}`]);
+  return `<button class="save ${saved ? "active" : ""}" type="button" data-save="${escapeHtml(item.id)}" aria-label="${saved ? "取消收藏" : "收藏"}${escapeHtml(item.title)}">${saved ? "★" : "☆"}</button>`;
+}
+
+function openArticle(item) {
+  if (!item) return;
+  const sourceUrl = safeUrl(item.sourceUrl);
+  articleDialogContent.innerHTML = `
+    <article class="article-detail">
+      <div class="detail-heading">
+        <span class="tag">${escapeHtml(item.category || "时政")}</span>
+        <h2 id="articleDialogTitle">${escapeHtml(item.title)}</h2>
+        ${sourceMarkup(item, true)}
+      </div>
+      ${imageMarkup(item, "detail-image")}
+      <section class="analysis-block overview"><strong>事件概述</strong><p>${escapeHtml(item.overview || item.summary)}</p></section>
+      <section class="analysis-block"><strong>背景解释</strong><p>${escapeHtml(item.background || "这条新闻需要结合政策背景、现实问题和治理目标理解。")}</p></section>
+      <section class="analysis-block"><strong>影响分析</strong><p>${escapeHtml(item.impact || "它体现了现实问题对政策执行、公共治理和社会发展的影响。")}</p></section>
+      <section class="analysis-block keywords-block"><strong>考研政治关联点</strong><p>关键词：${escapeHtml((item.examKeywords || item.keywords || ["时政热点"]).join("、"))}。</p></section>
+      <section class="analysis-block conclusion"><strong>分析结论</strong><p>${escapeHtml(item.conclusion || item.point)}</p></section>
+      <footer class="detail-footer">
+        <button type="button" data-save="${escapeHtml(item.id)}">${state[`saved-${item.id}`] ? "取消收藏" : "收藏这条新闻"}</button>
+        ${sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">前往来源网站</a>` : ""}
+      </footer>
+    </article>
+  `;
+  if (!articleDialog.open) articleDialog.showModal();
+}
 
 function getDateKey(date) {
   const shanghaiTime = new Date(date.getTime() + shanghaiOffsetMs);
@@ -365,44 +451,32 @@ function render() {
     return matchFilter && (!query || haystack.includes(query));
   });
 
-  const newsMarkup = filtered.map((item) => {
-    const saved = Boolean(state[`saved-${item.id}`]);
-    return `
-      <article class="news-card">
-        <div class="news-top">
-          <span class="tag">${item.category}</span>
-          <button class="save ${saved ? "active" : ""}" type="button" data-save="${item.id}">${saved ? "已收藏" : "收藏"}</button>
-        </div>
-        <h3>${item.title}</h3>
-        <div class="source-line">
-          <span>来源：${item.sourceName || "未标注"}</span>
-          <span>${item.sourceVerified ? "原文正文提炼" : "来源摘要提炼"}</span>
-          ${item.translated ? "<span>已翻译</span>" : ""}
-          ${item.sourceUrl ? `<a href="${item.sourceUrl}" target="_blank" rel="noopener">查看原文</a>` : ""}
-        </div>
-        <div class="analysis-block">
-          <strong>事件概述（据原文整理）：</strong>
-          <p>${item.overview || item.summary}</p>
-        </div>
-        <div class="analysis-block">
-          <strong>背景解释：</strong>
-          <p>${item.background || "这条新闻需要结合政策背景、现实问题和治理目标理解。"}</p>
-        </div>
-        <div class="analysis-block">
-          <strong>影响分析：</strong>
-          <p>${item.impact || "它体现了现实问题对政策执行、公共治理和社会发展的影响。"}</p>
-        </div>
-        <div class="analysis-block">
-          <strong>考研政治关联点：</strong>
-          <p>关键词：${(item.examKeywords || item.keywords || ["自定义热点"]).join("、")}。</p>
-        </div>
-        <div class="analysis-block conclusion">
-          <strong>分析结论：</strong>
-          <p>${item.conclusion || item.point}</p>
-        </div>
-      </article>
-    `;
-  }).join("");
+  const lead = filtered[0];
+  const leadMarkup = lead ? `
+    <article class="lead-story">
+      <div class="lead-copy">
+        <div class="news-top"><span class="tag">${escapeHtml(lead.category)}</span>${saveButtonMarkup(lead)}</div>
+        <button class="story-title lead-title" type="button" data-open="${escapeHtml(lead.id)}">${escapeHtml(lead.title)}</button>
+        <p>${escapeHtml(teaserFor(lead, 170))}</p>
+        ${sourceMarkup(lead)}
+        <button class="read-more" type="button" data-open="${escapeHtml(lead.id)}">查看完整考研分析</button>
+      </div>
+      ${imageMarkup(lead, "lead-image")}
+    </article>
+  ` : "";
+  const gridMarkup = filtered.slice(1).map((item) => `
+    <article class="news-card">
+      ${imageMarkup(item)}
+      <div class="card-copy">
+        <div class="news-top"><span class="tag">${escapeHtml(item.category)}</span>${saveButtonMarkup(item)}</div>
+        <button class="story-title" type="button" data-open="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>
+        <p>${escapeHtml(teaserFor(item))}</p>
+        ${sourceMarkup(item)}
+        <button class="read-more" type="button" data-open="${escapeHtml(item.id)}">完整分析</button>
+      </div>
+    </article>
+  `).join("");
+  const newsMarkup = lead ? `${leadMarkup}<div class="story-grid">${gridMarkup}</div>` : "";
   newsList.innerHTML = newsMarkup || emptyStateMarkup(query);
 
   resultCount.textContent = reportStatus === "loading" ? "正在加载" : `${filtered.length} 条`;
@@ -591,11 +665,42 @@ searchInput.addEventListener("input", render);
 
 newsList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-save]");
+  if (button) {
+    const key = `saved-${button.dataset.save}`;
+    state[key] = !state[key];
+    saveState();
+    render();
+    return;
+  }
+  const opener = event.target.closest("[data-open]");
+  if (opener) openArticle(allNews().find((item) => item.id === opener.dataset.open));
+});
+
+newsList.addEventListener("error", (event) => {
+  if (event.target.tagName !== "IMG") return;
+  event.target.closest("figure")?.classList.add("failed");
+}, true);
+
+articleDialogContent.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-save]");
   if (!button) return;
-  const key = `saved-${button.dataset.save}`;
+  const item = allNews().find((article) => article.id === button.dataset.save);
+  if (!item) return;
+  const key = `saved-${item.id}`;
   state[key] = !state[key];
   saveState();
   render();
+  openArticle(item);
+});
+
+articleDialogContent.addEventListener("error", (event) => {
+  if (event.target.tagName !== "IMG") return;
+  event.target.closest("figure")?.classList.add("failed");
+}, true);
+
+closeArticle.addEventListener("click", () => articleDialog.close());
+articleDialog.addEventListener("click", (event) => {
+  if (event.target === articleDialog) articleDialog.close();
 });
 
 document.querySelectorAll("[data-check]").forEach((checkbox) => {

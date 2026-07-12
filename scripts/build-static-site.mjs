@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +15,13 @@ for (const file of ["index.html", "app.js", "styles.css"]) {
 }
 await cp(path.join(rootDir, "assets"), path.join(distDir, "assets"), { recursive: true });
 await cp(path.join(rootDir, "published-data", "news"), path.join(distDir, "data", "news"), { recursive: true });
+try {
+  const imageSource = path.join(rootDir, "published-data", "images");
+  await access(imageSource);
+  await cp(imageSource, path.join(distDir, "data", "images"), { recursive: true });
+} catch {
+  // Reports remain readable when a source article does not expose a usable image.
+}
 await writeFile(path.join(distDir, ".nojekyll"), "", "utf8");
 
 console.log(`Static site built in ${distDir}`);

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeNewsManifest } from "./scripts/news-archive.mjs";
+import { enrichNewsArchive, enrichReportImages } from "./scripts/news-images.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const publishedDataDir = path.resolve(process.env.NEWS_DATA_DIR || path.join(rootDir, "published-data", "news"));
@@ -16,8 +17,9 @@ const { backfillNews, cachedNews, dateKey } = await import("./server.mjs");
 
 if (hasFlag("--backfill")) {
   const result = await backfillNews(Number(option("--days")) || 14);
+  const images = await enrichNewsArchive(publishedDataDir);
   const manifest = await writeNewsManifest(publishedDataDir);
-  console.log(`Backfill complete: ${result.results.length} checks, ${manifest.reports.length} finalized reports.`);
+  console.log(`Backfill complete: ${result.results.length} checks, ${manifest.reports.length} finalized reports, ${images.cached} images cached.`);
   process.exit(0);
 }
 
@@ -32,5 +34,6 @@ if (report.status !== "available") {
   throw new Error(`Report is not available: ${report.reason || report.status}`);
 }
 
+await enrichReportImages(report, publishedDataDir);
 const manifest = await writeNewsManifest(publishedDataDir);
 console.log(`Finalized ${date}-${edition}: ${report.articles.length} articles. Archive size: ${manifest.reports.length}.`);
