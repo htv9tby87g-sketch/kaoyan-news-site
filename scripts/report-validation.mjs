@@ -40,3 +40,7 @@ export function assertReportReady(payload, expectedDate, expectedEdition) {
   }
   return validation;
 }
+
+export function failedBackfillChecks(result) {
+  return (result?.results || []).filter((item) => item?.status === "failed");
+}

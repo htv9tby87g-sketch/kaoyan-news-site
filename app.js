@@ -482,7 +482,7 @@ function emptyStateMarkup(query) {
     return `<div class="feed-empty locked"><strong>未到推送时间</strong><p>${feedMessage}</p><small>到达发布时间后，本页会自动加载。</small></div>`;
   }
   if (reportStatus === "delayed") {
-    return `<div class="feed-empty delayed"><strong>新闻生成延迟</strong><p>${feedMessage}</p><small>页面每5分钟自动检查一次，也可以点击“检查补发”。</small></div>`;
+    return `<div class="feed-empty delayed"><strong>新闻生成延迟</strong><p>${feedMessage}</p><small>页面每5分钟自动检查一次，也可以点击“重新检查”。</small></div>`;
   }
   if (reportStatus === "unavailable") {
     return `<div class="feed-empty locked"><strong>该日期暂无档案</strong><p>${feedMessage}</p></div>`;
@@ -546,7 +546,7 @@ function render() {
     : reportLocked
       ? "尚未发布"
       : reportStatus === "delayed"
-        ? "检查补发"
+        ? "重新检查"
         : "重新加载";
   updatePushClock();
 }

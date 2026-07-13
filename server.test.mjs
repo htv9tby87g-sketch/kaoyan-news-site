@@ -9,8 +9,8 @@ import {
   isCurrentCache,
   makeEventOverview,
 } from "./server.mjs";
-import { validateReportForPublication } from "./scripts/report-validation.mjs";
-import { removeUncachedImage } from "./scripts/news-images.mjs";
+import { failedBackfillChecks, validateReportForPublication } from "./scripts/report-validation.mjs";
+import { isUsableImageSize, removeUncachedImage } from "./scripts/news-images.mjs";
 
 const at = (value) => new Date(value);
 
@@ -24,6 +24,15 @@ assert.equal(removeUncachedImage(remoteImageArticle), true);
 assert.deepEqual(remoteImageArticle, {});
 assert.equal(removeUncachedImage({ imageUrl: "data/images/local.jpg", imageSource: "source" }), false);
 console.log("PASS 未缓存的远程图片会被清除，本地图片保持不变");
+assert.equal(isUsableImageSize(8192), false);
+assert.equal(isUsableImageSize(80 * 1024), true);
+console.log("PASS 过小的 Logo 和装饰图不会被当作新闻图片");
+
+assert.deepEqual(
+  failedBackfillChecks({ results: [{ status: "cached" }, { status: "failed", error: "source timeout" }] }),
+  [{ status: "failed", error: "source timeout" }],
+);
+console.log("PASS 补档失败不会再被误判为成功");
 
 const cases = [
   ["7月9日早报", getReportAvailability("2026-07-09", "morning", at("2026-07-10T04:00:00Z")).reason, "before_launch"],

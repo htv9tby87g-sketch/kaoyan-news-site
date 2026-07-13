@@ -5,17 +5,11 @@ on:
     branches:
       - main
   schedule:
-    # Beijing 06:45, 07:15, 07:45, 08:15, 08:45 and 09:15.
+    # Beijing 06:45 and 20:45: prepare reports before their release time.
     - cron: "45 22 * * *"
-    - cron: "15,45 23 * * *"
-    - cron: "15,45 0 * * *"
-    - cron: "15 1 * * *"
-    # Beijing 20:45, 21:15, 21:45 and 22:15.
     - cron: "45 12 * * *"
-    - cron: "15,45 13 * * *"
-    - cron: "15 14 * * *"
-    # Beijing 00:30: recover any missing reports from the past 14 days.
-    - cron: "30 16 * * *"
+    # Every 15 minutes: recover any released report missing from the past 14 days.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       edition:
@@ -55,10 +49,12 @@ jobs:
         shell: bash
         run: |
           generate_with_retry() {
-            local edition="$1"
+            local command="$1"
             for attempt in 1 2 3; do
-              echo "Generating ${edition} report (attempt ${attempt}/3)..."
-              if node generate-report.mjs --edition "$edition" --prepare; then
+              echo "Running ${command} (attempt ${attempt}/3)..."
+              if [ "$command" = "catch-up" ]; then
+                node generate-report.mjs --backfill --days 14 && return 0
+              elif node generate-report.mjs --edition "$command" --prepare; then
                 return 0
               fi
               if [ "$attempt" -lt 3 ]; then
@@ -71,17 +67,18 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             generate_with_retry "${{ inputs.edition }}"
           elif [ "${{ github.event_name }}" = "push" ]; then
-            node generate-report.mjs --backfill --days 14
+            generate_with_retry catch-up
           else
             case "${{ github.event.schedule }}" in
-              "45 22 * * *"|"15,45 23 * * *"|"15,45 0 * * *"|"15 1 * * *") generate_with_retry morning ;;
-              "45 12 * * *"|"15,45 13 * * *"|"15 14 * * *") generate_with_retry evening ;;
-              "30 16 * * *") node generate-report.mjs --backfill --days 14 ;;
+              "45 22 * * *") generate_with_retry morning ;;
+              "45 12 * * *") generate_with_retry evening ;;
+              "7,22,37,52 * * * *") generate_with_retry catch-up ;;
               *) echo "Unknown schedule"; exit 1 ;;
             esac
           fi
 
       - name: Commit new finalized archives
+        if: always()
         shell: bash
         run: |
           git config user.name "kaoyan-news-bot"

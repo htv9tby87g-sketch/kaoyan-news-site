@@ -2,8 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { access, readFile, unlink } from "node:fs/promises";
 import { writeNewsManifest } from "./scripts/news-archive.mjs";
-import { enrichNewsArchive, enrichReportImages } from "./scripts/news-images.mjs";
-import { assertReportReady } from "./scripts/report-validation.mjs";
+import { enrichReportImages } from "./scripts/news-images.mjs";
+import { assertReportReady, failedBackfillChecks } from "./scripts/report-validation.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const publishedDataDir = path.resolve(process.env.NEWS_DATA_DIR || path.join(rootDir, "published-data", "news"));
@@ -19,9 +19,27 @@ const { backfillNews, cachedNews, dateKey } = await import("./server.mjs");
 
 if (hasFlag("--backfill")) {
   const result = await backfillNews(Number(option("--days")) || 14);
-  const images = await enrichNewsArchive(publishedDataDir);
+  const failures = failedBackfillChecks(result);
+  let cachedImages = 0;
+  for (const item of result.results.filter((entry) => entry.status === "created")) {
+    const file = path.join(publishedDataDir, `${item.date}-${item.edition}.json`);
+    try {
+      const report = JSON.parse(await readFile(file, "utf8"));
+      assertReportReady(report, item.date, item.edition);
+      const images = await enrichReportImages(report, publishedDataDir);
+      cachedImages += images.cached;
+      assertReportReady(JSON.parse(await readFile(file, "utf8")), item.date, item.edition);
+    } catch (error) {
+      await unlink(file).catch(() => {});
+      failures.push({ date: item.date, edition: item.edition, status: "failed", error: error.message });
+    }
+  }
   const manifest = await writeNewsManifest(publishedDataDir);
-  console.log(`Backfill complete: ${result.results.length} checks, ${manifest.reports.length} finalized reports, ${images.cached} images cached.`);
+  console.log(`Backfill complete: ${result.results.length} checks, ${manifest.reports.length} finalized reports, ${cachedImages} images cached.`);
+  if (failures.length) {
+    const details = failures.map((item) => `${item.date}-${item.edition}: ${item.error}`).join(" | ");
+    throw new Error(`Backfill failed for ${failures.length} report(s): ${details}`);
+  }
   process.exit(0);
 }
 

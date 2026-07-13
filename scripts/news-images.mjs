@@ -3,6 +3,8 @@ import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const imageLimit = { morning: 5, evening: 3 };
+const minimumImageBytes = 20 * 1024;
+const maximumImageBytes = 8 * 1024 * 1024;
 const contentTypeExtensions = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],
@@ -95,12 +97,16 @@ async function cacheImage(remoteUrl, destinationDir, stem) {
   const extension = contentTypeExtensions.get(contentType);
   if (!extension) throw new Error(`Unsupported image type: ${contentType || "unknown"}`);
   const declaredSize = Number(response.headers.get("content-length") || 0);
-  if (declaredSize > 8 * 1024 * 1024) throw new Error("Image is too large");
+  if (declaredSize && !isUsableImageSize(declaredSize)) throw new Error("Image size is outside the usable range");
   const bytes = Buffer.from(await response.arrayBuffer());
-  if (!bytes.length || bytes.length > 8 * 1024 * 1024) throw new Error("Invalid image size");
+  if (!isUsableImageSize(bytes.length)) throw new Error("Invalid image size");
   const filename = `${stem}${extension}`;
   await writeFile(path.join(destinationDir, filename), bytes);
   return filename;
+}
+
+export function isUsableImageSize(size) {
+  return Number(size) >= minimumImageBytes && Number(size) <= maximumImageBytes;
 }
 
 export function removeUncachedImage(article) {
@@ -142,7 +148,8 @@ export async function enrichReportImages(report, newsDir) {
         cached += 1;
         continue;
       } catch {
-        // Recreate a missing cached image below.
+        delete article.imageUrl;
+        changed = true;
       }
     }
 
