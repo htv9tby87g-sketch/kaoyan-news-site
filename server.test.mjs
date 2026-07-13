@@ -10,8 +10,20 @@ import {
   makeEventOverview,
 } from "./server.mjs";
 import { validateReportForPublication } from "./scripts/report-validation.mjs";
+import { removeUncachedImage } from "./scripts/news-images.mjs";
 
 const at = (value) => new Date(value);
+
+const remoteImageArticle = {
+  imageUrl: "http://example.com/news.jpg",
+  imageRemoteUrl: "http://example.com/news.jpg",
+  imageAlt: "remote image",
+  imageSource: "example",
+};
+assert.equal(removeUncachedImage(remoteImageArticle), true);
+assert.deepEqual(remoteImageArticle, {});
+assert.equal(removeUncachedImage({ imageUrl: "data/images/local.jpg", imageSource: "source" }), false);
+console.log("PASS 未缓存的远程图片会被清除，本地图片保持不变");
 
 const cases = [
   ["7月9日早报", getReportAvailability("2026-07-09", "morning", at("2026-07-10T04:00:00Z")).reason, "before_launch"],

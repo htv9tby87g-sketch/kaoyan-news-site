@@ -103,6 +103,17 @@ async function cacheImage(remoteUrl, destinationDir, stem) {
   return filename;
 }
 
+export function removeUncachedImage(article) {
+  if (String(article?.imageUrl || "").startsWith("data/images/")) return false;
+  let changed = false;
+  for (const key of ["imageUrl", "imageRemoteUrl", "imageAlt", "imageSource"]) {
+    if (!article || !(key in article)) continue;
+    delete article[key];
+    changed = true;
+  }
+  return changed;
+}
+
 export async function enrichReportImages(report, newsDir) {
   if (!report?.date || !report?.edition || !Array.isArray(report.articles)) return { cached: 0, changed: false };
   const destinationDir = path.resolve(newsDir, "..", "images");
@@ -112,7 +123,7 @@ export async function enrichReportImages(report, newsDir) {
   const target = imageLimit[report.edition] || 3;
   const seenRemoteImages = new Set();
 
-  for (let index = 0; index < report.articles.length && cached < target; index += 1) {
+  for (let index = 0; index < report.articles.length; index += 1) {
     const article = report.articles[index];
     const knownRemote = String(article.imageRemoteUrl || "");
     if (knownRemote && seenRemoteImages.has(knownRemote)) {
@@ -135,10 +146,17 @@ export async function enrichReportImages(report, newsDir) {
       }
     }
 
+    if (cached >= target) {
+      changed = removeUncachedImage(article) || changed;
+      continue;
+    }
+
     try {
       const image = await discoverImage(article);
-      if (!image.url) continue;
-      if (seenRemoteImages.has(image.url)) continue;
+      if (!image.url || seenRemoteImages.has(image.url)) {
+        changed = removeUncachedImage(article) || changed;
+        continue;
+      }
       const hash = createHash("sha256").update(image.url).digest("hex").slice(0, 10);
       const stem = `${report.date}-${report.edition}-${String(index + 1).padStart(2, "0")}-${hash}`;
       const filename = await cacheImage(image.url, destinationDir, stem);
@@ -151,6 +169,7 @@ export async function enrichReportImages(report, newsDir) {
       changed = true;
     } catch {
       // A failed image must never prevent the factual report from publishing.
+      changed = removeUncachedImage(article) || changed;
     }
   }
 

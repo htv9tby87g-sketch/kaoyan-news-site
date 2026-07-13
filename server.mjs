@@ -1,7 +1,6 @@
 import http from "node:http";
 import https from "node:https";
 import { readFile, mkdir, writeFile, access } from "node:fs/promises";
-import { createReadStream } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -1179,22 +1178,26 @@ async function handleBackfill(req, res, url) {
   }
 }
 
-function serveStatic(req, res, url) {
+async function serveStatic(req, res, url) {
   const pathname = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
-  const filePath = path.normalize(path.join(__dirname, pathname));
-  if (!filePath.startsWith(__dirname)) {
+  const publishedPath = pathname.startsWith("/data/");
+  const staticRoot = publishedPath ? path.join(__dirname, "published-data") : __dirname;
+  const relativePath = publishedPath ? pathname.slice("/data".length) : pathname;
+  const filePath = path.resolve(staticRoot, `.${relativePath}`);
+  if (filePath !== staticRoot && !filePath.startsWith(`${staticRoot}${path.sep}`)) {
     res.writeHead(403);
     res.end("Forbidden");
     return;
   }
-  const ext = path.extname(filePath).toLowerCase();
-  res.writeHead(200, { "Content-Type": mime[ext] || "application/octet-stream" });
-  createReadStream(filePath)
-    .on("error", () => {
-      res.writeHead(404);
-      res.end("Not found");
-    })
-    .pipe(res);
+  try {
+    const body = await readFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, { "Content-Type": mime[ext] || "application/octet-stream" });
+    res.end(req.method === "HEAD" ? undefined : body);
+  } catch {
+    res.writeHead(404);
+    res.end("Not found");
+  }
 }
 
 const server = http.createServer((req, res) => {
@@ -1207,7 +1210,7 @@ const server = http.createServer((req, res) => {
     handleBackfill(req, res, url);
     return;
   }
-  serveStatic(req, res, url);
+  void serveStatic(req, res, url);
 });
 
 server.on("error", (error) => {

@@ -243,6 +243,7 @@ function safeUrl(value = "", localAllowed = false) {
   if (localAllowed && /^(?:data\/images|assets)\/[a-z0-9._/-]+$/i.test(url)) return url;
   try {
     const parsed = new URL(url, window.location.href);
+    if (window.location.protocol === "https:" && parsed.protocol === "http:") return "";
     return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
   } catch {
     return "";
@@ -302,15 +303,22 @@ document.addEventListener("error", (event) => {
   const topicImageUrl = safeUrl(image.dataset.topicSrc, true);
   if (!image.dataset.topicTried && topicImageUrl) {
     image.dataset.topicTried = "1";
-    image.src = topicImageUrl;
     image.alt = image.dataset.topicAlt || "专题配图";
     figure.classList.add("topic-art");
+    figure.classList.remove("failed");
     const caption = figure.querySelector("figcaption");
     if (caption) caption.textContent = "专题配图 · 非新闻现场";
+    image.src = topicImageUrl;
     return;
   }
 
   figure.classList.add("failed");
+}, true);
+
+document.addEventListener("load", (event) => {
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement)) return;
+  image.closest("figure")?.classList.remove("failed");
 }, true);
 
 function sourceMarkup(item, includeLink = false) {
