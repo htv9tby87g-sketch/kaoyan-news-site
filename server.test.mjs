@@ -9,6 +9,7 @@ import {
   isCurrentCache,
   makeEventOverview,
 } from "./server.mjs";
+import { validateReportForPublication } from "./scripts/report-validation.mjs";
 
 const at = (value) => new Date(value);
 
@@ -71,6 +72,28 @@ assert.equal(backfill.results.length, 14);
 assert.ok(backfill.results.every((item) => item.status === "skipped"));
 console.log(`PASS 补档跳过未开放报告: ${backfill.results.length} 项`);
 console.log(`cacheVersion=${cacheVersion}`);
+
+const validArticle = {
+  title: "测试新闻",
+  sourceName: "新华社",
+  sourceUrl: "https://example.com/news",
+  overview: "这是用于验证新闻来源和事件概述完整性的测试内容。".repeat(5),
+};
+const validMorning = validateReportForPublication({
+  status: "available",
+  date: "2026-07-13",
+  edition: "morning",
+  articles: Array.from({ length: 8 }, (_, index) => ({ ...validArticle, id: index })),
+}, "2026-07-13", "morning");
+assert.equal(validMorning.valid, true);
+const shortMorning = validateReportForPublication({
+  status: "available",
+  date: "2026-07-13",
+  edition: "morning",
+  articles: Array.from({ length: 7 }, (_, index) => ({ ...validArticle, id: index })),
+}, "2026-07-13", "morning");
+assert.equal(shortMorning.valid, false);
+console.log("PASS 发布校验会拒绝篇数不足的早报");
 
 const sourceHtml = `
   <meta name="source" content="新华社">

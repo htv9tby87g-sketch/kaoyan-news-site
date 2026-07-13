@@ -821,10 +821,11 @@ function tagValue(xml, tag) {
 async function fetchGoogleNews(query, maxrecords, date, edition, language = "zh-CN", region = "CN") {
   const window = reportWindow(date, edition);
   const url = new URL("https://news.google.com/rss/search");
+  const ceidLanguage = region === "CN" ? "zh-Hans" : language.split("-")[0];
   url.searchParams.set("q", `(${query}) after:${window.startKey} before:${window.endKey}`);
   url.searchParams.set("hl", language);
   url.searchParams.set("gl", region);
-  url.searchParams.set("ceid", `${region}:${language}`);
+  url.searchParams.set("ceid", `${region}:${ceidLanguage}`);
 
   const xml = await fetchText(url);
   const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)]
@@ -841,6 +842,35 @@ async function fetchGoogleNews(query, maxrecords, date, edition, language = "zh-
   return items
     .filter((item) => isInReportWindow(item, date, edition))
     .slice(0, maxrecords);
+}
+
+async function fetchDirectRss(feeds, maxrecords, date, edition) {
+  const results = await Promise.allSettled(feeds.map(async ({ url, source }) => {
+    const xml = await fetchText(url);
+    return [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)]
+      .map((match) => {
+        const item = match[1];
+        return {
+          title: tagValue(item, "title"),
+          url: tagValue(item, "link") || tagValue(item, "guid"),
+          seendesc: tagValue(item, "description"),
+          source,
+          seendate: tagValue(item, "pubDate") || tagValue(item, "date"),
+        };
+      })
+      .filter((item) => isInReportWindow(item, date, edition));
+  }));
+
+  const articles = results
+    .filter((result) => result.status === "fulfilled")
+    .flatMap((result) => result.value);
+  if (!articles.length) {
+    const reasons = results
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason?.message || String(result.reason));
+    throw new Error(reasons.join(" | ") || "no current articles");
+  }
+  return articles.slice(0, maxrecords);
 }
 
 function gdeltWindow(date, edition) {
@@ -878,6 +908,7 @@ async function fetchGdelt(query, maxrecords, date, edition) {
 async function fetchCandidates({
   gdeltQuery,
   googleQuery,
+  directFeeds = [],
   maxrecords,
   minimum,
   date,
@@ -885,25 +916,46 @@ async function fetchCandidates({
   language = "zh-CN",
   region = "CN",
 }) {
-  let primary = [];
-  let primaryError;
+  const candidates = [];
+  const errors = [];
   try {
-    primary = await fetchGdelt(gdeltQuery, maxrecords, date, edition);
-    if (primary.length >= minimum) return primary;
+    candidates.push(...await fetchGdelt(gdeltQuery, maxrecords, date, edition));
+    if (candidates.length >= minimum) return candidates;
   } catch (error) {
-    primaryError = error;
+    errors.push(`GDELT: ${error.message}`);
   }
 
   try {
-    const fallback = await fetchGoogleNews(googleQuery, maxrecords, date, edition, language, region);
-    return [...primary, ...fallback];
+    candidates.push(...await fetchGoogleNews(googleQuery, maxrecords, date, edition, language, region));
+    if (candidates.length >= minimum) return candidates;
   } catch (error) {
-    if (primary.length) return primary;
-    throw primaryError || error;
+    errors.push(`Google News: ${error.message}`);
   }
+
+  if (directFeeds.length) {
+    try {
+      candidates.push(...await fetchDirectRss(directFeeds, maxrecords, date, edition));
+    } catch (error) {
+      errors.push(`direct RSS: ${error.message}`);
+    }
+  }
+
+  if (candidates.length) return candidates;
+  throw new Error(`News indexes unavailable. ${errors.join("; ")}`);
 }
 
 async function buildNews(date, edition) {
+  const domesticFeeds = [
+    { source: "人民网", url: "https://www.people.com.cn/rss/politics.xml" },
+    { source: "人民网", url: "https://www.people.com.cn/rss/ywkx.xml" },
+    { source: "中国新闻网", url: "https://www.chinanews.com.cn/rss/china.xml" },
+    { source: "中国新闻网", url: "https://www.chinanews.com.cn/rss/finance.xml" },
+    { source: "中国新闻网", url: "https://www.chinanews.com.cn/rss/scroll-news.xml" },
+  ];
+  const foreignFeeds = [
+    { source: "人民网", url: "https://www.people.com.cn/rss/world.xml" },
+    { source: "中国新闻网", url: "https://www.chinanews.com.cn/rss/world.xml" },
+  ];
   const domesticQuery = "(domain:xinhuanet.com OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn OR domain:gov.cn OR domain:gmw.cn OR domain:ce.cn) sourcelang:Chinese";
   const foreignQuery = "(domain:un.org OR domain:reuters.com OR domain:apnews.com OR domain:bbc.com OR domain:worldbank.org OR domain:weforum.org) sourcelang:English";
   const eveningQuery = "(domain:xinhuanet.com OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn OR domain:gov.cn OR domain:reuters.com OR domain:apnews.com OR domain:bbc.com)";
@@ -915,6 +967,7 @@ async function buildNews(date, edition) {
     const items = await fetchCandidates({
       gdeltQuery: eveningQuery,
       googleQuery: "site:xinhuanet.com OR site:people.com.cn OR site:cctv.com 中国 时政 国际 新闻",
+      directFeeds: [...domesticFeeds, ...foreignFeeds],
       maxrecords: 18,
       minimum: 6,
       date,
@@ -927,6 +980,7 @@ async function buildNews(date, edition) {
     fetchCandidates({
       gdeltQuery: domesticQuery,
       googleQuery: domesticGoogleQuery,
+      directFeeds: domesticFeeds,
       maxrecords: 30,
       minimum: 10,
       date,
@@ -935,6 +989,7 @@ async function buildNews(date, edition) {
     fetchCandidates({
       gdeltQuery: foreignQuery,
       googleQuery: foreignGoogleQuery,
+      directFeeds: foreignFeeds,
       maxrecords: 12,
       minimum: 5,
       date,
@@ -1155,14 +1210,6 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res, url);
 });
 
-process.on("unhandledRejection", (error) => {
-  console.error("Unhandled rejection:", error);
-});
-
-process.on("uncaughtException", (error) => {
-  console.error("Uncaught exception:", error);
-});
-
 server.on("error", (error) => {
   if (error.code === "EADDRINUSE") {
     console.error(`Port ${port} is already in use. The site may already be running at http://localhost:${port}`);
@@ -1172,6 +1219,16 @@ server.on("error", (error) => {
 });
 
 if (path.resolve(process.argv[1] || "") === __filename) {
+  process.on("unhandledRejection", (error) => {
+    console.error("Unhandled rejection:", error);
+    process.exit(1);
+  });
+
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception:", error);
+    process.exit(1);
+  });
+
   server.listen(port, () => {
     console.log(`考研时政新闻站已启动：http://localhost:${port}`);
   });

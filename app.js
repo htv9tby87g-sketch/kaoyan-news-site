@@ -458,7 +458,7 @@ function getNextPush(now = new Date()) {
 }
 
 function allNews() {
-  if (["loading", "unreleased", "unavailable"].includes(reportStatus)) return [];
+  if (["loading", "unreleased", "unavailable", "delayed"].includes(reportStatus)) return [];
   const base = activeEdition === "evening" ? eveningNews : morningNews;
   const archived = customNews.filter((item) => item.edition === activeEdition && item.date === activeDate);
   if (archived.length) return archived;
@@ -472,6 +472,9 @@ function emptyStateMarkup(query) {
   }
   if (reportStatus === "unreleased") {
     return `<div class="feed-empty locked"><strong>未到推送时间</strong><p>${feedMessage}</p><small>到达发布时间后，本页会自动加载。</small></div>`;
+  }
+  if (reportStatus === "delayed") {
+    return `<div class="feed-empty delayed"><strong>新闻生成延迟</strong><p>${feedMessage}</p><small>页面每5分钟自动检查一次，也可以点击“检查补发”。</small></div>`;
   }
   if (reportStatus === "unavailable") {
     return `<div class="feed-empty locked"><strong>该日期暂无档案</strong><p>${feedMessage}</p></div>`;
@@ -530,7 +533,13 @@ function render() {
   editionHint.textContent = activeEdition === "evening" ? "轻复盘，适合晚上 9 点后" : "重输入，适合早上 7 点到晚上 9 点";
   const reportLocked = ["unreleased", "unavailable"].includes(reportStatus);
   refreshNews.disabled = loadingNews || reportLocked;
-  refreshNews.textContent = loadingNews ? "加载中..." : reportLocked ? "尚未发布" : "重新加载";
+  refreshNews.textContent = loadingNews
+    ? "加载中..."
+    : reportLocked
+      ? "尚未发布"
+      : reportStatus === "delayed"
+        ? "检查补发"
+        : "重新加载";
   updatePushClock();
 }
 
@@ -547,6 +556,14 @@ function scheduleReleaseRefresh(availableAt, date, edition) {
     releaseRefreshTimer = null;
     if (activeDate === date && activeEdition === edition) loadRemoteNews(false);
   }, delay + 500);
+}
+
+function scheduleArchiveRetry(date, edition, delay = 5 * 60 * 1000) {
+  clearReleaseRefresh();
+  releaseRefreshTimer = setTimeout(() => {
+    releaseRefreshTimer = null;
+    if (activeDate === date && activeEdition === edition) loadRemoteNews(true);
+  }, delay);
 }
 
 async function loadRemoteNews(refresh = false) {
@@ -589,19 +606,17 @@ async function loadRemoteNews(refresh = false) {
     const response = await fetch(endpoint, { cache: refresh ? "no-store" : "default" });
     if (usesStaticArchive() && response.status === 404) {
       const fallback = await getLatestStaticReport();
-      if (fallback && requestVersion === newsRequestVersion) {
-        activeDate = fallback.date;
-        activeEdition = fallback.edition;
-        dateInput.value = activeDate;
-        document.querySelectorAll("[data-edition]").forEach((item) => {
-          item.classList.toggle("active", item.dataset.edition === activeEdition);
-        });
-        remoteNews = fallback.articles || [];
-        reportStatus = "available";
-        storeFinalizedReport(fallback);
-        feedMessage = `当前档案尚未发布，正在显示最近定稿：${fallback.date} ${fallback.edition === "evening" ? "晚报" : "早报"}`;
-        return;
-      }
+      if (requestVersion !== newsRequestVersion) return;
+      const label = requestedEdition === "evening" ? "晚报" : "早报";
+      const prefix = requestedDate === getDateKey() ? `今日${label}` : `${requestedDate} ${label}`;
+      const latestHint = fallback
+        ? ` 最近成功档案为 ${fallback.date} ${fallback.edition === "evening" ? "晚报" : "早报"}，可以切换日期查看。`
+        : "";
+      remoteNews = [];
+      reportStatus = "delayed";
+      feedMessage = `${prefix}尚未生成，自动任务正在重试。${latestHint}`;
+      scheduleArchiveRetry(requestedDate, requestedEdition);
+      return;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
@@ -629,10 +644,11 @@ async function loadRemoteNews(refresh = false) {
       feedMessage = "重新加载失败，继续显示当前已定稿档案。";
     } else {
       remoteNews = [];
-      reportStatus = usesStaticArchive() ? "unavailable" : "error";
+      reportStatus = usesStaticArchive() ? "delayed" : "error";
       feedMessage = usesStaticArchive()
-        ? "云端档案尚未生成，稍后会自动发布。"
+        ? "暂时无法读取云端档案，系统将在5分钟后重新检查。"
         : "未连接本地新闻服务。请用 start-news-site.bat 打开，或查看本地模板。";
+      if (usesStaticArchive()) scheduleArchiveRetry(requestedDate, requestedEdition);
     }
   } finally {
     if (requestVersion !== newsRequestVersion) return;

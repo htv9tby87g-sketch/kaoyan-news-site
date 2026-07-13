@@ -1,7 +1,9 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { access, readFile, unlink } from "node:fs/promises";
 import { writeNewsManifest } from "./scripts/news-archive.mjs";
 import { enrichNewsArchive, enrichReportImages } from "./scripts/news-images.mjs";
+import { assertReportReady } from "./scripts/report-validation.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const publishedDataDir = path.resolve(process.env.NEWS_DATA_DIR || path.join(rootDir, "published-data", "news"));
@@ -29,11 +31,29 @@ if (!['morning', 'evening'].includes(edition)) {
 }
 
 const date = option("--date") || dateKey(new Date());
-const report = await cachedNews(date, edition, false, false, new Date(), hasFlag("--prepare"));
-if (report.status !== "available") {
-  throw new Error(`Report is not available: ${report.reason || report.status}`);
+const reportPath = path.join(publishedDataDir, `${date}-${edition}.json`);
+let reportExisted = true;
+try {
+  await access(reportPath);
+} catch {
+  reportExisted = false;
 }
 
-await enrichReportImages(report, publishedDataDir);
-const manifest = await writeNewsManifest(publishedDataDir);
-console.log(`Finalized ${date}-${edition}: ${report.articles.length} articles. Archive size: ${manifest.reports.length}.`);
+try {
+  const report = await cachedNews(date, edition, false, false, new Date(), hasFlag("--prepare"));
+  if (report.status !== "available") {
+    throw new Error(`Report is not available: ${report.reason || report.status}`);
+  }
+
+  const validation = assertReportReady(report, date, edition);
+  await enrichReportImages(report, publishedDataDir);
+  const persistedReport = JSON.parse(await readFile(reportPath, "utf8"));
+  assertReportReady(persistedReport, date, edition);
+  const manifest = await writeNewsManifest(publishedDataDir);
+  console.log(`Finalized ${date}-${edition}: ${validation.articleCount} articles (${validation.completeArticleCount} source-complete). Archive size: ${manifest.reports.length}.`);
+} catch (error) {
+  if (!reportExisted) {
+    await unlink(reportPath).catch(() => {});
+  }
+  throw error;
+}

@@ -1,15 +1,23 @@
 {
-  "updatedAt": "2026-07-12T19:30:10.235Z",
+  "updatedAt": "2026-07-13T04:45:10.070Z",
   "siteLaunchDate": "2026-07-10",
   "latest": {
-    "date": "2026-07-12",
-    "edition": "evening",
-    "file": "2026-07-12-evening.json",
-    "generatedAt": "2026-07-12T13:31:39.917Z",
-    "finalizedAt": "2026-07-12T13:31:39.917Z",
-    "articleCount": 6
+    "date": "2026-07-13",
+    "edition": "morning",
+    "file": "2026-07-13-morning.json",
+    "generatedAt": "2026-07-13T04:45:08.110Z",
+    "finalizedAt": "2026-07-13T04:45:08.110Z",
+    "articleCount": 15
   },
   "reports": [
+    {
+      "date": "2026-07-13",
+      "edition": "morning",
+      "file": "2026-07-13-morning.json",
+      "generatedAt": "2026-07-13T04:45:08.110Z",
+      "finalizedAt": "2026-07-13T04:45:08.110Z",
+      "articleCount": 15
+    },
     {
       "date": "2026-07-12",
       "edition": "evening",

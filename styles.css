@@ -109,6 +109,8 @@ h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 56px); line-height: 1; letter-
 .feed-empty strong { font-size: 24px; }
 .feed-empty p, .feed-empty small { max-width: 540px; margin: 0; color: var(--muted); line-height: 1.7; }
 .feed-empty.locked { border-top: 4px solid var(--news-red); background: #fff8f8; }
+.feed-empty.delayed { border-top: 5px solid var(--news-red); background: #fff6f6; }
+.feed-empty.delayed strong { color: var(--news-red); }
 
 .lead-story { display: grid; grid-template-columns: minmax(250px, 0.78fr) minmax(380px, 1.22fr); gap: 22px; padding: 0 0 22px; border-bottom: 1px solid var(--line); }
 .lead-copy { align-self: center; }
