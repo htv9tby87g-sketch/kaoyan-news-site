@@ -5,10 +5,8 @@ on:
     branches:
       - main
   schedule:
-    # Beijing 06:45 and 20:45: prepare reports before their release time.
-    - cron: "45 22 * * *"
-    - cron: "45 12 * * *"
-    # Every 15 minutes: recover any released report missing from the past 14 days.
+    # Every 15 minutes: recover released reports. Fixed pre-release jobs are
+    # intentionally avoided because delayed cron events can cross a date boundary.
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
@@ -36,6 +34,7 @@ jobs:
     timeout-minutes: 30
     env:
       NEWS_DATA_DIR: published-data/news
+      NEWS_CLOUD_MODE: "1"
     steps:
       - name: Check out archive
         uses: actions/checkout@v4
@@ -70,8 +69,6 @@ jobs:
             generate_with_retry catch-up
           else
             case "${{ github.event.schedule }}" in
-              "45 22 * * *") generate_with_retry morning ;;
-              "45 12 * * *") generate_with_retry evening ;;
               "7,22,37,52 * * * *") generate_with_retry catch-up ;;
               *) echo "Unknown schedule"; exit 1 ;;
             esac
@@ -83,7 +80,7 @@ jobs:
         run: |
           git config user.name "kaoyan-news-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add published-data/news
+          git add published-data/news published-data/images
           if git diff --cached --quiet; then
             echo "No new archive files."
           else

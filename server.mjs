@@ -643,7 +643,7 @@ async function enrichSourceArticle(article) {
     seendesc: detail,
     imageUrl: page.imageUrl || article.imageUrl || article.socialimage || "",
     imageAlt: page.imageAlt || article.imageAlt || article.title || "",
-    sourceVerified: pageDetail.length >= 80,
+    sourceVerified: pageDetail.length >= 80 || (article.officialFeed && indexedDetail.length >= 80),
   };
 }
 
@@ -704,6 +704,7 @@ async function normalizeArticles(items, edition) {
       translated: false,
       imageUrl: item.imageUrl || item.socialimage || "",
       imageAlt: cleanText(item.imageAlt || item.title),
+      officialFeed: Boolean(item.officialFeed),
     }));
 }
 
@@ -714,6 +715,7 @@ async function enrichNormalizedArticle(article, edition) {
     url: article.sourceUrl,
     seendate: article.publishedAt,
     seendesc: article.sourceDescription,
+    officialFeed: article.officialFeed,
   });
   if (!groundedDetail(sourceArticle)) return null;
 
@@ -855,6 +857,7 @@ async function fetchDirectRss(feeds, maxrecords, date, edition) {
           seendesc: tagValue(item, "description"),
           source,
           seendate: tagValue(item, "pubDate") || tagValue(item, "date"),
+          officialFeed: true,
         };
       })
       .filter((item) => isInReportWindow(item, date, edition));
@@ -917,6 +920,17 @@ async function fetchCandidates({
 }) {
   const candidates = [];
   const errors = [];
+  const cloudMode = process.env.NEWS_CLOUD_MODE === "1";
+
+  if (cloudMode && directFeeds.length) {
+    try {
+      candidates.push(...await fetchDirectRss(directFeeds, maxrecords, date, edition));
+      if (candidates.length >= minimum) return candidates;
+    } catch (error) {
+      errors.push(`direct RSS: ${error.message}`);
+    }
+  }
+
   try {
     candidates.push(...await fetchGdelt(gdeltQuery, maxrecords, date, edition));
     if (candidates.length >= minimum) return candidates;
@@ -931,7 +945,7 @@ async function fetchCandidates({
     errors.push(`Google News: ${error.message}`);
   }
 
-  if (directFeeds.length) {
+  if (!cloudMode && directFeeds.length) {
     try {
       candidates.push(...await fetchDirectRss(directFeeds, maxrecords, date, edition));
     } catch (error) {

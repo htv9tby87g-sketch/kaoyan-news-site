@@ -4,9 +4,9 @@ This project can run without the local computer after it is placed in a public G
 
 ## What runs in the cloud
 
-- GitHub Actions prepares the morning report at 06:45 Beijing time and the evening report at 20:45 Beijing time.
-- Retry jobs run at 07:15 and 21:15 Beijing time.
-- A daily recovery job checks the previous 14 days for missing archives.
+- GitHub Actions checks every 15 minutes for released reports missing from the previous 14 days.
+- Cloud generation prioritizes official RSS feeds to reduce data-center rate limiting.
+- Opening the desktop shortcut runs the same recovery locally and pushes any missing archives.
 - Each generated JSON file is final. A later run reads the existing file instead of replacing it.
 - GitHub Pages publishes the static `dist` folder, so readers only fetch final JSON files.
 
@@ -25,5 +25,9 @@ node scripts\prepare-published-data.mjs
 node generate-report.mjs --edition morning --prepare
 node scripts\build-static-site.mjs
 ```
+
+The desktop shortcut runs `scripts\local-catchup.ps1 -OpenBrowser`. It opens the
+public site immediately, checks for missing released reports in the background,
+and pushes finalized archives through the existing Git credentials.
 
 The local `data/news` directory remains a backup. Only finalized files in `published-data/news` are included in the public static website.
