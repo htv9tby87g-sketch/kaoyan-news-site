@@ -3,6 +3,7 @@ import https from "node:https";
 import { readFile, mkdir, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { extractPageImage } from "./scripts/news-images.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -504,41 +505,12 @@ function dedupeSourceSentences(value) {
   return result.join(" ");
 }
 
-function normalizeImageUrl(value, baseUrl = "") {
-  const decoded = decodeHtmlEntities(String(value || "")).trim();
-  if (!decoded) return "";
-  try {
-    const url = new URL(decoded, baseUrl || undefined);
-    if (!["http:", "https:"].includes(url.protocol)) return "";
-    return url.href;
-  } catch {
-    return "";
-  }
-}
-
-function articleImageFromTags(html, sourceUrl = "") {
-  for (const match of String(html).matchAll(/<img\b[^>]*>/gi)) {
-    const attributes = tagAttributes(match[0]);
-    const candidate = attributes["data-src"] || attributes["data-original"] || attributes.src || "";
-    const imageUrl = normalizeImageUrl(candidate, sourceUrl);
-    if (!imageUrl) continue;
-    if (/(?:qrcode|qr-code|ewm|zxcode|sharelogo|\/logo|\/icon|avatar)/i.test(imageUrl)) continue;
-    if (!/\.(?:jpe?g|png|webp)(?:$|[?#])/i.test(imageUrl)) continue;
-    return { imageUrl, imageAlt: cleanText(attributes.alt || "") };
-  }
-  return { imageUrl: "", imageAlt: "" };
-}
-
 function extractArticlePage(html, title = "", sourceUrl = "") {
   const sourceName = metaContents(html, ["source", "article:author", "og:site_name"])[0] || "";
   const publishedAt = metaContents(html, ["publishdate", "article:published_time", "datePublished"])[0] || "";
-  const metadataImageUrl = normalizeImageUrl(
-    metaContents(html, ["og:image:secure_url", "og:image", "twitter:image", "twitter:image:src"])[0],
-    sourceUrl,
-  );
-  const inlineImage = articleImageFromTags(html, sourceUrl);
-  const imageUrl = metadataImageUrl || inlineImage.imageUrl;
-  const imageAlt = metaContents(html, ["og:image:alt", "twitter:image:alt"])[0] || inlineImage.imageAlt || title;
+  const pageImage = extractPageImage(html, sourceUrl);
+  const imageUrl = pageImage.url;
+  const imageAlt = pageImage.alt || title;
   const metaDescriptions = metaContents(html, ["description", "og:description", "twitter:description"]);
   const structured = jsonLdArticleText(html);
   const withoutNoise = String(html)

@@ -10,7 +10,7 @@ import {
   makeEventOverview,
 } from "./server.mjs";
 import { failedBackfillChecks, validateReportForPublication } from "./scripts/report-validation.mjs";
-import { isUsableImageSize, removeUncachedImage } from "./scripts/news-images.mjs";
+import { extractPageImages, isUsableImageSize, removeUncachedImage } from "./scripts/news-images.mjs";
 
 const at = (value) => new Date(value);
 
@@ -27,6 +27,23 @@ console.log("PASS 未缓存的远程图片会被清除，本地图片保持不�
 assert.equal(isUsableImageSize(8192), false);
 assert.equal(isUsableImageSize(80 * 1024), true);
 console.log("PASS 过小的 Logo 和装饰图不会被当作新闻图片");
+
+const chinaNewsImages = extractPageImages(`
+  <header><img src="/fileftp/site-brand.png" width="164" height="50" alt="China News"></header>
+  <img src="//image.cns.com.cn/default/homepage-banner.jpg" alt="">
+  <div class="left_zw">
+    <p>News body</p>
+    <img src="/fileftp/large-inline-qr.png" alt="">
+    <img src="//i2.chinanews.com.cn/simg/cmshd/2026/07/13/event-scene.jpg" alt="Event scene">
+    <div id="zw_cyhd"></div>
+    <img src="/fileftp/large-qr-code.png" alt="">
+  </div>
+`, "https://www.chinanews.com.cn/gn/2026/07-13/example.shtml");
+assert.equal(chinaNewsImages[0].url, "https://i2.chinanews.com.cn/simg/cmshd/2026/07/13/event-scene.jpg");
+assert.ok(!chinaNewsImages.some((image) => image.url.includes("site-brand.png")));
+assert.ok(!chinaNewsImages.some((image) => image.url.includes("large-inline-qr.png")));
+assert.ok(!chinaNewsImages.some((image) => image.url.includes("large-qr-code.png")));
+console.log("PASS China News body images are preferred over logos and homepage artwork");
 
 assert.deepEqual(
   failedBackfillChecks({ results: [{ status: "cached" }, { status: "failed", error: "source timeout" }] }),
